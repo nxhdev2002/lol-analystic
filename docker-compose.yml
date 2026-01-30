@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  fbchat-bot:
+    image: nxhdev2002/fbbot:latest
+    container_name: fbchat-bot
+    restart: unless-stopped
+    environment:
+      # Riot Games API Key
+      - RIOT_API_KEY=${RIOT_API_KEY:-}
+      # Google Gemini API Key
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      # OpenAI API Key
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      # AI Provider Selection (gemini or openai)
+      - AI_PROVIDER=${AI_PROVIDER:-gemini}
+      # OpenAI Base URL
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      # OpenAI Model
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o-mini}
+    volumes:
+      # Mount logs directory for persistent logs
+      - ./logs:/app/logs
+    # If you need to expose a port, uncomment below
+    # ports:
+    #   - "8080:8080"
+    # If you need to run in interactive mode, uncomment below
+    # stdin_open: true
+    # tty: true

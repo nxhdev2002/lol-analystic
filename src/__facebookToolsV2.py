@@ -1,10 +1,11 @@
 import requests, json, time, random
 from utils import parse_cookie_string, dataSplit, formAll, mainRequests
+from config import FACEBOOK_PROXY
   
 
 def dataGetHome(setCookies):
      
-     mainRequests = {
+     request_config = {
           "headers": {
                "authority": "www.facebook.com",
                "method": "GET",
@@ -37,6 +38,13 @@ def dataGetHome(setCookies):
           "verify": True
      }
      
+     # Add proxy if configured
+     if FACEBOOK_PROXY:
+          request_config["proxies"] = {
+               "http": FACEBOOK_PROXY,
+               "https": FACEBOOK_PROXY
+          }
+     
      dictValueSaved = {}
      splitDataList = [
           # FORMAT: nameValue, stringData_1, stringData_2
@@ -49,7 +57,7 @@ def dataGetHome(setCookies):
           ["clientRevision", "client_revision\":", ","]
      ]
      
-     sendRequests = requests.get(**mainRequests).text
+     sendRequests = requests.get(**request_config).text
      for i in splitDataList:
           nameValue = i[0]
           try:

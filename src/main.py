@@ -1,8 +1,9 @@
 from __facebookToolsV2 import dataGetHome, fbTools
 from __messageListenV2 import listeningEvent  # Import the specific class or module you need
-from __sendMessage import api
-from __uploadAttachments import _uploadAttachment
-import datetime, threading, os, json
+import os, json, threading
+
+# Import Command Handler
+from commands import CommandHandler
  
 class fbClient:
     def __init__(self, cookies, dataFB):
@@ -15,35 +16,25 @@ class fbClient:
         self.attachmentID = None
         self.typeChat = None # Change this value if you want to send the message to a user instead of a group. If you want to send it to a user, replace it with the value: 'user'
         self.recentReceivedMessages = []
+        self.command_handler = CommandHandler()
 
     def setDefaultValue(self):
         self.userID, self.bodyMessage, self.replyToID, self.bodySend, self.commandPlugins, self.typeChat, self.attachmentID, self.typeAttachment= [None] * 8
 
     def receiveCommandAndSend(self):
         if (self.dataFB["FacebookID"] != self.userID):
-             match self.commandPlugins.lower():
-                 case "uptime":
-                     self.bodySend = "datetime: " + str(datetime.datetime.now())
-                 case "hola" | "hello" | "hi":
-                     self.bodySend = "Hey,", self.userID
-                 case "ping":
-                     self.bodySend = "Pong!"
-                 case "img":
-                     nameAttachment = "NAME PATH IMAGE" # Change the image path here (only image!)
-                     uploadAttachment = _uploadAttachment(nameAttachment, self.dataFB) # args=("<nameFile>, dataFB)
-                     self.attachmentID = uploadAttachment.get('attachmentID')
-                     self.bodySend = 'Your image!'
-                     self.typeAttachment = "image" # Change this value to match the attachment.
-                     """ WARNING: 
-                         This is just an example for sending images. If you want to send other types of attachments,
-                         you need to change the value of the variable: typeAttachment.
-                         Learn more at: https://github.com/MinhHuyDev/fbchat-v2/blob/main/DOCS.md#uploadAttachmentAndSend
-                     """
-                 case __:
-                     self.bodySend = self.bodyMessage
-             mainSend = api()  # Use the specific class or module you imported
-             threading.Thread(target=mainSend.send, args=(self.dataFB, self.bodySend, self.replyToID, self.typeAttachment, self.attachmentID, self.typeChat)).start()
-             self.setDefaultValue()
+            # Execute command asynchronously using the command handler
+            # This allows multiple commands to be processed in parallel
+            future = self.command_handler.execute_command_async(
+                self,
+                self.dataFB,
+                self.commandPlugins,
+                self.replyToID,
+                self.typeChat
+            )
+            
+            # Reset default values immediately - command runs in background
+            self.setDefaultValue()
 
     def prefixCheck(self):
         if self.bodyMessage[0] == self.prefix:
@@ -82,7 +73,7 @@ class fbClient:
                    pass
                    
 
-cookies = "<cookie-facebook>"
+cookies = "datr=n9JwaeO-9KMyRnM0R5yuBYBL; sb=n9JwaYott_8zwPUyChc_nFwA; locale=vi_VN; ps_l=1; ps_n=1; c_user=100014184491456; wd=1920x919; xs=38%3A1G_1GqQl7Cp15Q%3A2%3A1769655891%3A-1%3A-1%3A%3AAcxYNMU0Mtm5_aCjLCyN45B54d-gS-cn1g9ZxYujHA; fr=1s84sNN4irKFgmgMy.AWfTFMacanCttM1hDCtVJiYcvyx3TTNHqOXg64R3etn1OdIE_-k.Bpe3ho..AAA.0.0.Bpe3o1.AWcMBxLpxHAPvisnMw3nj91tTOo; presence=C%7B%22lm3%22%3A%22g.845664565142543%22%2C%22t3%22%3A%5B%5D%2C%22utc3%22%3A1769699896085%2C%22v%22%3A1%7D"
 dataFB = dataGetHome(cookies)
 print(dataFB)
 _ = fbClient(cookies, dataFB)

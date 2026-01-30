@@ -3,6 +3,7 @@ import re
 import string
 import random
 import json
+from config import FACEBOOK_PROXY
 
 """
 Written by Nguyen Minh Huy (RainTee)
@@ -36,8 +37,14 @@ def randStr(length):
          
 def GetToken2FA(key2Fa):
      try:
-          twoFARequests = json.loads(requests.get("https://2fa.live/tok/" + key2Fa.replace(" ","")).text)
-          return twoFARequests["token"] 
+          proxies = None
+          if FACEBOOK_PROXY:
+               proxies = {
+                    "http": FACEBOOK_PROXY,
+                    "https": FACEBOOK_PROXY
+               }
+          twoFARequests = json.loads(requests.get("https://2fa.live/tok/" + key2Fa.replace(" ",""), proxies=proxies).text)
+          return twoFARequests["token"]
      except:
           return random.randint(100000, 999999) # TROLL TIME (appears only when it has an error) ¯⁠\⁠_⁠(⁠ツ⁠)⁠_⁠/⁠¯
 
@@ -104,8 +111,15 @@ class loginFB:
           dataForm["api_key"] = "882a8490361da98702bf97a021ddc14d"
           dataForm["access_token"] = "350685531728|62f8ce9f74b12f84c123cc23437a4a32"
 
-         
-          dataJson = json.loads(requests.post("https://b-graph.facebook.com/auth/login",data=dataForm, headers=headers).text)
+          # Prepare proxy configuration
+          proxies = None
+          if FACEBOOK_PROXY:
+               proxies = {
+                    "http": FACEBOOK_PROXY,
+                    "https": FACEBOOK_PROXY
+               }
+          
+          dataJson = json.loads(requests.post("https://b-graph.facebook.com/auth/login",data=dataForm, headers=headers, proxies=proxies).text)
           if (dataJson.get("error") != None):
                if (dataJson["error"]["error_subcode"] == 1348162):
                     Get2FA = GetToken2FA(self.twoTokenAccess)
@@ -144,7 +158,7 @@ class loginFB:
                     dataForm2Fa["fb_api_caller_class"] = "Fb4aAuthHandler"
                     dataForm2Fa["api_key"] = "882a8490361da98702bf97a021ddc14d"
                     dataForm2Fa["access_token"] = "350685531728|62f8ce9f74b12f84c123cc23437a4a32"
-                    pass2Fa = json.loads(requests.post("https://b-graph.facebook.com/auth/login",data=dataForm2Fa, headers=headers).text)
+                    pass2Fa = json.loads(requests.post("https://b-graph.facebook.com/auth/login",data=dataForm2Fa, headers=headers, proxies=proxies).text)
                     if (pass2Fa.get("error") == None):
                          try:
                               listExportCookies = []

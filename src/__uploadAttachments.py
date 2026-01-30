@@ -1,6 +1,7 @@
 import random, attr, requests, json
 # import __facebookToolsV2
 from utils import str_base,  get_files_from_paths
+from config import FACEBOOK_PROXY
 
 def _uploadAttachment(filenames, dataFB):
 
@@ -27,7 +28,15 @@ def _uploadAttachment(filenames, dataFB):
           "upload_{}".format(i): f for i, f in enumerate(files)
      }
      
-     resultRequests = requests.post("https://upload.facebook.com/ajax/mercury/upload.php", headers=headers, data=dataForm, files=file_dict).text
+     # Prepare proxy configuration
+     proxies = None
+     if FACEBOOK_PROXY:
+          proxies = {
+               "http": FACEBOOK_PROXY,
+               "https": FACEBOOK_PROXY
+          }
+     
+     resultRequests = requests.post("https://upload.facebook.com/ajax/mercury/upload.php", headers=headers, data=dataForm, files=file_dict, proxies=proxies).text
      
      try: 
           resultRequests = json.loads(resultRequests.replace("for (;;);", ""))["payload"]

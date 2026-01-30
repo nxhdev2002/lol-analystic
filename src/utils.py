@@ -1,6 +1,11 @@
-import attr, re, json, random, string, time
+import attr, re, json, random, string, time, threading
 from os.path import basename
-from mimetypes import guess_type 
+from mimetypes import guess_type
+from config import FACEBOOK_PROXY
+
+# Thread-safe counter for __req parameter
+_req_counter = 0
+_req_lock = threading.Lock()
 
 def Headers(dataForm=None, Host=None):
      if (Host == None): Host = "www.facebook.com"
@@ -55,9 +60,14 @@ def dataSplit(string1, string2, numberSplit1=None, numberSplit2=None, HTML=None,
           return HTML.split(string1)[numberSplit1].split(string2)[numberSplit2].split(string3)[numberSplit3]
      
 def formAll(dataFB, FBApiReqFriendlyName=None, docID=None, requireGraphql=None):
-     __reg = attr.ib(0).counter
+     global _req_counter
+     
+     # Thread-safe counter increment
+     with _req_lock:
+          _req_counter += 1
+          __reg = _req_counter
+     
      _revision = attr.ib()
-     __reg += 1 
      dataForm = {}
      
      if (requireGraphql == None):
@@ -65,7 +75,7 @@ def formAll(dataFB, FBApiReqFriendlyName=None, docID=None, requireGraphql=None):
           dataForm["jazoest"] = dataFB["jazoest"]
           dataForm["__a"] = 1
           dataForm["__user"] =str(dataFB["FacebookID"])
-          dataForm["__req"] = str_base(__reg, 36) 
+          dataForm["__req"] = str_base(__reg, 36)
           dataForm["__rev"] = dataFB["clientRevision"]
           dataForm["av"] = dataFB["FacebookID"]
           dataForm["fb_api_caller_class"] = "RelayModern"
@@ -77,7 +87,7 @@ def formAll(dataFB, FBApiReqFriendlyName=None, docID=None, requireGraphql=None):
           dataForm["jazoest"] = dataFB["jazoest"]
           dataForm["__a"] = 1
           dataForm["__user"] =str(dataFB["FacebookID"])
-          dataForm["__req"] = str_base(__reg, 36) 
+          dataForm["__req"] = str_base(__reg, 36)
           dataForm["__rev"] = dataFB["clientRevision"]
           dataForm["av"] = dataFB["FacebookID"]
 
@@ -88,7 +98,7 @@ def clearHTML(text):
      return regex.sub('', text)
      
 def mainRequests(urlRequests, dataForm, setCookies):
-     return {
+     request_config = {
           "headers": Headers(dataForm),
           "timeout": 5,
           "url": urlRequests, # "https://www.facebook.com/api/graphql/",
@@ -96,6 +106,15 @@ def mainRequests(urlRequests, dataForm, setCookies):
           "cookies": parse_cookie_string(setCookies),
           "verify": True
      }
+     
+     # Add proxy if configured
+     if FACEBOOK_PROXY:
+          request_config["proxies"] = {
+               "http": FACEBOOK_PROXY,
+               "https": FACEBOOK_PROXY
+          }
+     
+     return request_config
      
 def generate_session_id():
 

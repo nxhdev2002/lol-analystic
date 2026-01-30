@@ -1,6 +1,7 @@
 import requests, json
 # import __facebookToolsV2
 from utils import Headers, parse_cookie_string, formAll
+from config import FACEBOOK_PROXY
      
 def Main(dataFB, typeAdded, messageID, emojiChoice):
 
@@ -14,16 +15,23 @@ def Main(dataFB, typeAdded, messageID, emojiChoice):
      }})
      dataForm["dpr"] = 1
      
-     mainRequests = {
-               "headers": Headers(dataFB["cookieFacebook"], dataForm),
-               "timeout": 60000,
-               "url": "https://www.facebook.com/webgraphql/mutation/",
-               "data": dataForm,
-               "cookies": parse_cookie_string(dataFB["cookieFacebook"]),
-               "verify": True
-     }
-               
-     sendRequests = requests.post(**mainRequests)
+     request_config = {
+                "headers": Headers(dataFB["cookieFacebook"], dataForm),
+                "timeout": 60000,
+                "url": "https://www.facebook.com/webgraphql/mutation/",
+                "data": dataForm,
+                "cookies": parse_cookie_string(dataFB["cookieFacebook"]),
+                "verify": True
+      }
+     
+     # Add proxy if configured
+     if FACEBOOK_PROXY:
+          request_config["proxies"] = {
+               "http": FACEBOOK_PROXY,
+               "https": FACEBOOK_PROXY
+          }
+                
+     sendRequests = requests.post(**request_config)
      return sendRequests
      
 

@@ -114,28 +114,31 @@ class api:
           self.removeDataAttachmentCheck()
 
      def sendRequests(self):
-     
-          _main = mainRequests("https://www.facebook.com/messaging/send/", self.dataForm, self.dataFB["cookieFacebook"])
-          sendRequests = requests.post(**_main).text
-          sendRequests = json.loads(sendRequests.split("for (;;);")[1])
-          if sendRequests.get('payload'):
-               _ = sendRequests["payload"]["actions"][0]
+          try:
+               _main = mainRequests("https://www.facebook.com/messaging/send/", self.dataForm, self.dataFB["cookieFacebook"])
+               sendRequests = requests.post(**_main).text
+               sendRequests = json.loads(sendRequests.split("for (;;);")[1])
+               if sendRequests.get('payload'):
+                    _ = sendRequests["payload"]["actions"][0]
+                    self.results = {
+                         "success": 1,
+                         "payload": {
+                              "messageID": _["message_id"],
+                              "timestamp": _["timestamp"]
+                         }
+                    }
+                    return
                self.results = {
-                    "success": 1,
+                    "error": 1,
                     "payload": {
-                         "messageID": _["message_id"],
-                         "timestamp": _["timestamp"]
+                         "error-decription": sendRequests["errorDescription"],
+                         "error-code": sendRequests["error"]
                     }
                }
                return
-          self.results = {
-               "error": 1,
-               "payload": {
-                    "error-decription": sendRequests["errorDescription"],
-                    "error-code": sendRequests["error"]
-               }
-          }
-          return
+          except Exception as e:
+               print("Lỗi khi gửi tin nhắn:", str(e))
+               return
           
           # Thread(target=sendRequests, args=()).start()
      
