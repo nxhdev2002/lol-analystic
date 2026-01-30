@@ -84,8 +84,8 @@ jobs:
           VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
           VAULT_TOKEN: ${{ secrets.VAULT_TOKEN }}
         run: |
-          # Fetch VPS credentials from Vault
-          VPS_CREDS=$(vault kv get -format=json ${{ secrets.VAULT_SECRET_PATH }} | jq -r '.data.data // .data')
+          # Fetch VPS credentials from Vault (mount: github-config, path: fb-bot)
+          VPS_CREDS=$(vault kv get -mount="github-config" -format=json "fb-bot" | jq -r '.data.data // .data')
           
           # Parse credentials
           VPS_HOST=$(echo "$VPS_CREDS" | jq -r '.host')
