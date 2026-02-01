@@ -5,6 +5,7 @@ Handles all communications with Riot Games API for League of Legends data.
 
 import requests
 import time
+from typing import Optional
 
 
 class RiotAPI:
@@ -366,3 +367,145 @@ class RiotAPI:
             "puuid": puuid,
             "matches": matches
         }
+    
+    def publish_match_event(
+        self,
+        match_id: str,
+        puuid: str,
+        summoner_name: str,
+        game_duration: int,
+        win: bool,
+        champion: str,
+        kills: int = 0,
+        deaths: int = 0,
+        assists: int = 0,
+        kda: float = 0.0,
+        enable_rabbitmq: bool = True,
+    ) -> bool:
+        """
+        Publish a match ended event to RabbitMQ.
+        
+        Args:
+            match_id: Riot match ID
+            puuid: Player PUUID
+            summoner_name: Summoner name
+            game_duration: Game duration in seconds
+            win: True if player won the match
+            champion: Champion played
+            kills: Number of kills
+            deaths: Number of deaths
+            assists: Number of assists
+            kda: KDA ratio
+            enable_rabbitmq: Whether to enable RabbitMQ publishing
+            
+        Returns:
+            True if published successfully, False otherwise
+        """
+        if not enable_rabbitmq:
+            return False
+        
+        try:
+            from publishers import MatchPublisher
+            
+            publisher = MatchPublisher()
+            return publisher.publish_match_ended(
+                match_id=match_id,
+                puuid=puuid,
+                summoner_name=summoner_name,
+                game_duration=game_duration,
+                win=win,
+                champion=champion,
+                kills=kills,
+                deaths=deaths,
+                assists=assists,
+                kda=kda,
+            )
+        except Exception as e:
+            print(f"Failed to publish match event: {e}")
+            return False
+    
+    def get_and_publish_last_match(
+        self,
+        summoner_name: str,
+        enable_rabbitmq: bool = True,
+    ) -> Optional[dict]:
+        """
+        Get the last match for a player and publish it to RabbitMQ.
+        
+        Args:
+            summoner_name: The summoner name
+            enable_rabbitmq: Whether to enable RabbitMQ publishing
+            
+        Returns:
+            Match data dictionary or None if failed
+        """
+        try:
+            # Get PUUID
+            puuid = self.get_puuid_by_name(summoner_name)
+            
+            # Get last match ID
+            match_ids = self.get_match_ids_by_puuid(puuid, count=1)
+            
+            if not match_ids:
+                print(f"No matches found for {summoner_name}")
+                return None
+            
+            match_id = match_ids[0]
+            match_data = self.get_match_details(match_id)
+            info = match_data.get("info", {})
+            
+            # Find the player in the match
+            participant = None
+            for p in info.get("participants", []):
+                if p.get("puuid") == puuid:
+                    participant = p
+                    break
+            
+            if not participant:
+                print(f"Player {summoner_name} not found in match {match_id}")
+                return None
+            
+            # Extract match data
+            game_duration = info.get("gameDuration", 0)
+            win = participant.get("win", False)
+            champion_id = participant.get("championId", 0)
+            kills = participant.get("kills", 0)
+            deaths = participant.get("deaths", 0)
+            assists = participant.get("assists", 0)
+            
+            # Calculate KDA
+            kda = (kills + assists) / deaths if deaths > 0 else kills + assists
+            
+            # Get champion name from ID (simplified - you may need a champion mapping)
+            champion = f"Champion_{champion_id}"
+            
+            # Publish to RabbitMQ
+            if enable_rabbitmq:
+                self.publish_match_event(
+                    match_id=match_id,
+                    puuid=puuid,
+                    summoner_name=summoner_name,
+                    game_duration=game_duration,
+                    win=win,
+                    champion=champion,
+                    kills=kills,
+                    deaths=deaths,
+                    assists=assists,
+                    kda=kda,
+                )
+            
+            return {
+                "match_id": match_id,
+                "summoner_name": summoner_name,
+                "puuid": puuid,
+                "game_duration": game_duration,
+                "win": win,
+                "champion": champion,
+                "kills": kills,
+                "deaths": deaths,
+                "assists": assists,
+                "kda": kda,
+            }
+        except Exception as e:
+            print(f"Error getting and publishing match: {e}")
+            return None

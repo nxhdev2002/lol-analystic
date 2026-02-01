@@ -1,0 +1,122 @@
+{
+  "$defs": {
+    "MessageReceivedData": {
+      "description": "Data structure for MessageReceived event.",
+      "properties": {
+        "message_id": {
+          "description": "Unique message identifier",
+          "title": "Message Id",
+          "type": "string"
+        },
+        "user_id": {
+          "description": "User ID who sent the message",
+          "title": "User Id",
+          "type": "string"
+        },
+        "sender_id": {
+          "description": "Sender ID",
+          "title": "Sender Id",
+          "type": "string"
+        },
+        "body": {
+          "description": "Message content",
+          "title": "Body",
+          "type": "string"
+        },
+        "reply_to_id": {
+          "description": "Thread or user ID to reply to",
+          "title": "Reply To Id",
+          "type": "string"
+        },
+        "type": {
+          "description": "Message type: 'user' or 'thread'",
+          "title": "Type",
+          "type": "string"
+        },
+        "attachments": {
+          "description": "List of attachments",
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Attachments",
+          "type": "array"
+        }
+      },
+      "required": [
+        "message_id",
+        "user_id",
+        "sender_id",
+        "body",
+        "reply_to_id",
+        "type"
+      ],
+      "title": "MessageReceivedData",
+      "type": "object"
+    }
+  },
+  "description": "Event published when a message is received from Facebook.",
+  "properties": {
+    "event_type": {
+      "default": "message.received",
+      "title": "Event Type",
+      "type": "string"
+    },
+    "timestamp": {
+      "description": "Event timestamp",
+      "format": "date-time",
+      "title": "Timestamp",
+      "type": "string"
+    },
+    "event_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Unique event identifier (UUID)",
+      "title": "Event Id"
+    },
+    "correlation_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Correlation ID for tracing across services",
+      "title": "Correlation Id"
+    },
+    "producer": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Service name that produced the event",
+      "title": "Producer"
+    },
+    "data": {
+      "$ref": "#/$defs/MessageReceivedData"
+    }
+  },
+  "required": [
+    "data"
+  ],
+  "title": "MessageReceivedEvent",
+  "type": "object",
+  "$id": "https://fbchat.events/v1/message.received.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": true
+}

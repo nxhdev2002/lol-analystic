@@ -4,9 +4,12 @@ import os, json, threading
 
 # Import Command Handler
 from commands import CommandHandler
+
+# Import RabbitMQ Publisher
+from publishers import MessagePublisher
  
 class fbClient:
-    def __init__(self, cookies, dataFB):
+    def __init__(self, cookies, dataFB, enable_rabbitmq=True):
         self.cookies = cookies
         self.dataFB = dataFB
         self.messageID = None
@@ -17,6 +20,17 @@ class fbClient:
         self.typeChat = None # Change this value if you want to send the message to a user instead of a group. If you want to send it to a user, replace it with the value: 'user'
         self.recentReceivedMessages = []
         self.command_handler = CommandHandler()
+        
+        # Initialize RabbitMQ Publisher
+        self.enable_rabbitmq = enable_rabbitmq
+        self.message_publisher = None
+        if self.enable_rabbitmq:
+            try:
+                self.message_publisher = MessagePublisher()
+                print("RabbitMQ MessagePublisher initialized successfully")
+            except Exception as e:
+                print(f"Failed to initialize RabbitMQ MessagePublisher: {e}")
+                self.enable_rabbitmq = False
 
     def setDefaultValue(self):
         self.userID, self.bodyMessage, self.replyToID, self.bodySend, self.commandPlugins, self.typeChat, self.attachmentID, self.typeAttachment= [None] * 8
@@ -45,7 +59,9 @@ class fbClient:
 
     def receiveMessage(self):
         self.fbt = fbTools(self.dataFB, 0)
-        mainReceiveMessage = listeningEvent(self.fbt, self.dataFB)  # Use the specific class or module you imported
+        # Pass the message_publisher to listeningEvent if RabbitMQ is enabled
+        publisher = self.message_publisher if self.enable_rabbitmq else None
+        mainReceiveMessage = listeningEvent(self.fbt, self.dataFB, publisher=publisher)  # Use the specific class or module you imported
         mainReceiveMessage.get_last_seq_id()
         threading.Thread(target=mainReceiveMessage.connect_mqtt, args=()).start()
         """
@@ -64,12 +80,29 @@ class fbClient:
                        self.messageID = self.bodyMain['messageID']
                        self.bodyMessage = self.bodyMain['body']
                        self.replyToID = self.bodyMain['replyToID']
-                       print(f"> userID: {self.userID}\n> messageID: {self.messageID}\n> messageContents: {self.bodyMessage}\n> From {self.bodyMain['type']}ID: {self.replyToID}\n- - - - -")
-                       if (self.bodyMain['type'] != 'thread'): self.typeChat = 'user'
+                       msg_type = self.bodyMain['type']
+                       print(f"> userID: {self.userID}\n> messageID: {self.messageID}\n> messageContents: {self.bodyMessage}\n> From {msg_type}ID: {self.replyToID}\n- - - - -")
+                       if (msg_type != 'thread'): self.typeChat = 'user'
+                       
+                       # Publish message to RabbitMQ if enabled
+                       if self.enable_rabbitmq and self.message_publisher:
+                           try:
+                               self.message_publisher.publish_from_dict({
+                                   "message_id": self.messageID,
+                                   "user_id": self.userID,
+                                   "sender_id": self.userID,
+                                   "body": self.bodyMessage,
+                                   "reply_to_id": self.replyToID,
+                                   "type": msg_type,
+                                   "attachments": []
+                               })
+                           except Exception as e:
+                               print(f"Failed to publish message to RabbitMQ: {e}")
+                       
                        self.prefixCheck()
                        self.receiveCommandAndSend()
                        self.setDefaultValue()
-               except: # If nothing happens, please replace 'except' with 'finally' to check for errors. 
+               except: # If nothing happens, please replace 'except' with 'finally' to check for errors.
                    pass
                    
 

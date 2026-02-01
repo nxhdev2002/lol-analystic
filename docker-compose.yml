@@ -1,6 +1,24 @@
 version: '3.8'
 
 services:
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    container_name: fbchat-rabbitmq
+    restart: unless-stopped
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   fbchat-bot:
     image: nxhdev2002/fbbot:latest
     container_name: fbchat-bot
@@ -27,3 +45,9 @@ services:
     # If you need to run in interactive mode, uncomment below
     # stdin_open: true
     # tty: true
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+volumes:
+  rabbitmq_data:

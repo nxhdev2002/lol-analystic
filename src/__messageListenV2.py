@@ -16,7 +16,7 @@ Date: 23:28 Sunday, 10/12/2023
      
 class listeningEvent:
      _on_message = attr.ib()
-     def __init__(self, fbt, dataFB):
+     def __init__(self, fbt, dataFB, publisher=None):
           self.bodyResults = {
                "body": None, # Nội dung tin nhắn - content message
                "timestamp": 0, # Thời gian tin nhắn được gửi - The time the message was sent
@@ -33,6 +33,8 @@ class listeningEvent:
           self.lastSeqID = None
           self.dataFB = dataFB
           self.fbt = fbt
+          self.publisher = publisher
+          self.disconnect_published = False  # Flag to prevent duplicate disconnect events
      
      
      def get_last_seq_id(self):
@@ -171,6 +173,18 @@ class listeningEvent:
                
           def on_disconnect(client, userdata, rc):
                  print("Disconnected?")
+                 # Publish messenger disconnected event if not already published for this session
+                 if self.publisher and not self.disconnect_published:
+                     try:
+                         reason = "connection_lost" if rc != 0 else "normal_disconnect"
+                         self.publisher.publish_messenger_disconnected(
+                             account_id=str(self.dataFB.get("FacebookID", "")),
+                             reason=reason
+                         )
+                         self.disconnect_published = True
+                         print(f"Published messenger disconnected event for account {self.dataFB.get('FacebookID')}")
+                     except Exception as e:
+                         print(f"Failed to publish messenger disconnected event: {e}")
      
           self.mqtt = mqtt.Client(
                client_id=options["client_id"],

@@ -1,0 +1,108 @@
+{
+  "$defs": {
+    "CookieChangedData": {
+      "description": "Data structure for CookieChanged event.",
+      "properties": {
+        "account_id": {
+          "description": "Facebook account ID",
+          "title": "Account Id",
+          "type": "string"
+        },
+        "old_cookie": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Old cookie value",
+          "title": "Old Cookie"
+        },
+        "new_cookie": {
+          "description": "New cookie value",
+          "title": "New Cookie",
+          "type": "string"
+        },
+        "force_reconnect": {
+          "default": true,
+          "description": "Force reconnection flag",
+          "title": "Force Reconnect",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "account_id",
+        "new_cookie"
+      ],
+      "title": "CookieChangedData",
+      "type": "object"
+    }
+  },
+  "description": "Event consumed when a cookie change is detected.",
+  "properties": {
+    "event_type": {
+      "default": "cookie.changed",
+      "title": "Event Type",
+      "type": "string"
+    },
+    "timestamp": {
+      "description": "Event timestamp",
+      "format": "date-time",
+      "title": "Timestamp",
+      "type": "string"
+    },
+    "event_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Unique event identifier (UUID)",
+      "title": "Event Id"
+    },
+    "correlation_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Correlation ID for tracing across services",
+      "title": "Correlation Id"
+    },
+    "producer": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Service name that produced the event",
+      "title": "Producer"
+    },
+    "data": {
+      "$ref": "#/$defs/CookieChangedData"
+    }
+  },
+  "required": [
+    "data"
+  ],
+  "title": "CookieChangedEvent",
+  "type": "object",
+  "$id": "https://fbchat.events/v1/cookie.changed.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": true
+}

@@ -1,0 +1,116 @@
+version: '3.8'
+
+services:
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    container_name: fbchat-rabbitmq
+    restart: unless-stopped
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - fbchat-network
+
+  fbchat-core:
+    build:
+      context: ../services/fbchat-core
+      dockerfile: Dockerfile
+    container_name: fbchat-core
+    restart: unless-stopped
+    environment:
+      # RabbitMQ Configuration
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASSWORD=guest
+      - RABBITMQ_VHOST=/
+      - RABBITMQ_EXCHANGE=fbchat.events
+      # Facebook Configuration
+      - FBCHAT_COOKIE=${FBCHAT_COOKIE:-}
+      - FACEBOOK_PROXY=${FACEBOOK_PROXY:-}
+    volumes:
+      - fbchat-core-logs:/app/logs
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - fbchat-network
+
+  lol-service:
+    build:
+      context: ../services/lol-service
+      dockerfile: Dockerfile
+    container_name: lol-service
+    restart: unless-stopped
+    environment:
+      # RabbitMQ Configuration
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASSWORD=guest
+      - RABBITMQ_VHOST=/
+      - RABBITMQ_EXCHANGE=fbchat.events
+      # Riot API Configuration
+      - RIOT_API_KEY=${RIOT_API_KEY:-}
+      # AI Configuration
+      - AI_PROVIDER=${AI_PROVIDER:-gemini}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o-mini}
+    volumes:
+      - lol-service-logs:/app/logs
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - fbchat-network
+
+  mini-fb-service:
+    build:
+      context: ../services/mini-fb-service
+      dockerfile: Dockerfile
+    container_name: mini-fb-service
+    restart: unless-stopped
+    environment:
+      # RabbitMQ Configuration
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASSWORD=guest
+      - RABBITMQ_VHOST=/
+      - RABBITMQ_EXCHANGE=fbchat.events
+      # Facebook Login Configuration
+      - MINIFB_ACCOUNT=${MINIFB_ACCOUNT:-}
+      - MINIFB_PASSWORD=${MINIFB_PASSWORD:-}
+      - MINIFB_HEADLESS=${MINIFB_HEADLESS:-true}
+      - MINIFB_BROWSER_TYPE=${MINIFB_BROWSER_TYPE:-chromium}
+    volumes:
+      - mini-fb-service-logs:/app/logs
+      # Mount X11 socket for GUI (optional, for non-headless mode)
+      # - /tmp/.X11-unix:/tmp/.X11-unix:ro
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - fbchat-network
+
+volumes:
+  rabbitmq_data:
+  fbchat-core-logs:
+  lol-service-logs:
+  mini-fb-service-logs:
+
+networks:
+  fbchat-network:
+    driver: bridge
